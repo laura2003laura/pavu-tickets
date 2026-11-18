@@ -64,6 +64,11 @@ const o = await db.order.findFirst({
 
 if (!o) redirect(`/checkout/${id}`);
 
+if (o.expiresAt && o.expiresAt <= new Date()) {
+  await cancelPending(id);
+  redirect(`/checkout/${id}?error=expired`);
+}
+
 if (!(await reservationIntact(id))) {
   await cancelPending(id);
   redirect(`/checkout/${id}`);
@@ -109,6 +114,11 @@ const o = await db.order.findFirst({
 });
 
 if (!o) redirect(`/checkout/${id}`);
+
+if (o.expiresAt && o.expiresAt <= new Date()) {
+  await cancelPending(id);
+  redirect(`/checkout/${id}?error=expired`);
+}
 
 if (!(await reservationIntact(id))) {
   await cancelPending(id);

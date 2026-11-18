@@ -46,6 +46,7 @@ export default async function EventPage({
         data: {
           userId: user.id, eventId: id, ticketTypeId: typeId, quantity: qty,
           status: "PENDING", // paid later, on /checkout/[orderId]
+          expiresAt: new Date(Date.now() + 35 * 60 * 1000),
           totalCents: tt.priceCents * qty, currency: tt.currency,
           
         },
@@ -108,6 +109,7 @@ async function buySeats(formData: FormData) {
       quantity: ids.length,
       seatIds: ids,
       status: "PENDING",
+          expiresAt: new Date(Date.now() + 35 * 60 * 1000),
       totalCents: total,
       currency: types[0].currency,
     },

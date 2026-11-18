@@ -285,11 +285,23 @@ export async function markCourierDeliveredAndIssue(orderId: string) {
   });
 }
 // Payment failed or expired: release reserved tickets or seats.
+// Payment failed or expired: release reserved tickets or seats.
 export async function cancelPending(orderId: string) {
   await db.$transaction(async (tx) => {
     const o = await tx.order.findUnique({ where: { id: orderId } });
 
-    if (!o || o.status !== "PENDING") return;
+    if (!o || o.status !== "PENDING" || o.deliveryMethod === "COURIER") return;
+
+    const claimed = await tx.order.updateMany({
+      where: {
+        id: orderId,
+        status: "PENDING",
+        deliveryMethod: o.deliveryMethod,
+      },
+      data: { status: "CANCELLED" },
+    });
+
+    if (claimed.count !== 1) return;
 
     if (o.ticketTypeId) {
       const released = await tx.ticketType.updateMany({
@@ -315,11 +327,6 @@ export async function cancelPending(orderId: string) {
         },
       });
     }
-
-    await tx.order.updateMany({
-      where: { id: orderId, status: "PENDING" },
-      data: { status: "CANCELLED" },
-    });
   });
 }
 
