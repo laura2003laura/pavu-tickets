@@ -1,0 +1,10 @@
+node_modules
+.next
+.env
+.env*
+!.env.example
+reset-backup-*.json
+tsconfig.tsbuildinfo
+*.pem
+*.log
+reset-database.js

@@ -1,0 +1,257 @@
+// PAVU tickets: database schema (PostgreSQL + Prisma)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  STAFF
+  ADMIN
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  CANCELLED
+  REFUNDED
+}
+
+enum TicketStatus {
+  VALID
+  USED
+  CANCELLED
+}
+
+enum SeatStatus {
+  AVAILABLE
+  HELD
+  SOLD
+}
+
+enum DeliveryMethod {
+  ONLINE
+  COURIER
+}
+enum DeliveryStatus {
+  PENDING
+  IN_TRANSIT
+  DELIVERED
+}
+
+enum ScanResult {
+  SUCCESS
+  ALREADY_USED
+  INVALID_SIGNATURE
+  CANCELLED
+  WRONG_EVENT
+  NOT_FOUND
+}
+
+// Volunteer application status
+enum VolunteerApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  RESERVE
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String?
+  passwordHash String
+  role         Role     @default(USER)
+  createdAt    DateTime @default(now())
+
+  orders   Order[]
+  scanLogs ScanLog[]
+}
+
+model Hall {
+  id        String   @id @default(cuid())
+  name      String
+  city      String
+  createdAt DateTime @default(now())
+
+  seats  Seat[]
+  events Event[]
+}
+
+model Seat {
+  id       String @id @default(cuid())
+  hallId   String
+  rowLabel String
+  number   Int
+  zone     String
+  col      Int
+
+  hall       Hall        @relation(fields: [hallId], references: [id], onDelete: Cascade)
+  eventSeats EventSeat[]
+  tickets    Ticket[]
+
+  @@unique([hallId, rowLabel, number])
+  @@index([hallId])
+}
+
+model Event {
+  id          String    @id @default(cuid())
+  title       String
+  description String
+  category    String
+  city        String
+  venue       String
+  hallId      String?
+  imageUrl    String?
+  startsAt    DateTime
+  endsAt      DateTime?
+  isPublished Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+
+  hall        Hall?        @relation(fields: [hallId], references: [id])
+  orders      Order[]
+  ticketTypes TicketType[]
+  tickets     Ticket[]
+  eventSeats  EventSeat[]
+  scanLogs    ScanLog[]
+
+  // Volunteer applications for this event
+  volunteers VolunteerApplication[]
+
+  @@index([startsAt])
+  @@index([city, category])
+}
+
+model TicketType {
+  id            String @id @default(cuid())
+  eventId       String
+  name          String
+  priceCents    Int
+  currency      String @default("USD")
+  quantityTotal   Int
+  quantitySold    Int @default(0)
+  quantityReserved Int @default(0)
+
+  event   Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  tickets Ticket[]
+
+  @@index([eventId])
+}
+
+model EventSeat {
+  id        String     @id @default(cuid())
+  eventId   String
+  seatId    String
+  status    SeatStatus @default(AVAILABLE)
+  orderId   String?
+  holdUntil DateTime?
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  seat  Seat  @relation(fields: [seatId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, seatId])
+  @@index([eventId, status])
+  @@index([orderId])
+}
+
+model Order {
+  id              String      @id @default(cuid())
+  userId          String
+  eventId         String
+  ticketTypeId    String?
+  quantity        Int
+seatIds         String[] @default([])
+
+  status          OrderStatus @default(PENDING)
+  totalCents      Int
+  currency        String      @default("USD")
+  stripeSessionId String?     @unique
+  expiresAt       DateTime?
+  createdAt       DateTime    @default(now())
+  paidAt          DateTime?
+
+  deliveryStatus  DeliveryStatus?
+  deliveryMethod  DeliveryMethod?
+  deliveryAddress String?
+  deliveryPhone   String?
+  deliveryLat     Float?
+  deliveryLng     Float?
+  deliveredAt     DateTime?
+
+  user    User     @relation(fields: [userId], references: [id])
+  event   Event    @relation(fields: [eventId], references: [id])
+  tickets Ticket[]
+
+  @@index([userId])
+  @@index([status, expiresAt])
+}
+
+model Ticket {
+  id           String       @id @default(cuid())
+  orderId      String
+  eventId      String
+  ticketTypeId String
+  seatId       String?
+  status       TicketStatus @default(VALID)
+  usedAt       DateTime?
+  usedById     String?
+  createdAt    DateTime     @default(now())
+
+  order      Order      @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  event      Event      @relation(fields: [eventId], references: [id])
+  ticketType TicketType @relation(fields: [ticketTypeId], references: [id])
+  seat       Seat?      @relation(fields: [seatId], references: [id])
+  scanLogs   ScanLog[]
+
+  @@index([orderId])
+  @@index([eventId, status])
+}
+
+model ScanLog {
+  id        String     @id @default(cuid())
+  ticketId  String?
+  eventId   String?
+  staffId   String
+  result    ScanResult
+  scannedAt DateTime   @default(now())
+
+  ticket Ticket? @relation(fields: [ticketId], references: [id])
+  event  Event?  @relation(fields: [eventId], references: [id])
+  staff  User    @relation(fields: [staffId], references: [id])
+
+  @@index([eventId, scannedAt])
+}
+
+// Volunteer applications
+model VolunteerApplication {
+  id      String @id @default(cuid())
+  eventId String
+
+  firstName String
+  lastName  String
+  birthDate DateTime
+
+  phone    String?
+  telegram String
+  email    String?
+
+  languages     String[] @default([])
+  experience    String?
+  availableDays String?
+  comment       String?
+
+  status VolunteerApplicationStatus @default(PENDING)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId, status])
+  @@index([createdAt])
+}
