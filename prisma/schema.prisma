@@ -38,10 +38,17 @@ enum DeliveryMethod {
   ONLINE
   COURIER
 }
+
 enum DeliveryStatus {
   PENDING
   IN_TRANSIT
   DELIVERED
+}
+
+enum GiftInvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
 }
 
 enum ScanResult {
@@ -128,14 +135,14 @@ model Event {
 }
 
 model TicketType {
-  id            String @id @default(cuid())
-  eventId       String
-  name          String
-  priceCents    Int
-  currency      String @default("USD")
-  quantityTotal   Int
-  quantitySold    Int @default(0)
-  quantityReserved Int @default(0)
+  id               String @id @default(cuid())
+  eventId          String
+  name             String
+  priceCents       Int
+  currency         String @default("USD")
+  quantityTotal    Int
+  quantitySold     Int    @default(0)
+  quantityReserved Int    @default(0)
 
   event   Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
   tickets Ticket[]
@@ -160,12 +167,12 @@ model EventSeat {
 }
 
 model Order {
-  id              String      @id @default(cuid())
-  userId          String
-  eventId         String
-  ticketTypeId    String?
-  quantity        Int
-seatIds         String[] @default([])
+  id           String   @id @default(cuid())
+  userId       String
+  eventId      String
+  ticketTypeId String?
+  quantity     Int
+  seatIds      String[] @default([])
 
   status          OrderStatus @default(PENDING)
   totalCents      Int
@@ -175,13 +182,19 @@ seatIds         String[] @default([])
   createdAt       DateTime    @default(now())
   paidAt          DateTime?
 
-  deliveryStatus  DeliveryStatus?
-  deliveryMethod  DeliveryMethod?
-  deliveryAddress String?
-  deliveryPhone   String?
-  deliveryLat     Float?
-  deliveryLng     Float?
-  deliveredAt     DateTime?
+  deliveryStatus     DeliveryStatus?
+  deliveryMethod     DeliveryMethod?
+  deliveryAddress    String?
+  deliveryPhone      String?
+  deliveryLat        Float?
+  deliveryLng        Float?
+  deliveredAt        DateTime?
+  isGift             Boolean         @default(false)
+  giftRecipientName  String?
+  giftRecipientPhone String?
+  giftAnonymous      Boolean         @default(true)
+
+  giftInvitation GiftInvitation?
 
   user    User     @relation(fields: [userId], references: [id])
   event   Event    @relation(fields: [eventId], references: [id])
@@ -254,4 +267,21 @@ model VolunteerApplication {
 
   @@index([eventId, status])
   @@index([createdAt])
+}
+
+model GiftInvitation {
+  id             String               @id @default(cuid())
+  orderId        String               @unique
+  recipientName  String?
+  recipientPhone String
+  token          String               @unique
+  status         GiftInvitationStatus @default(PENDING)
+  respondedAt    DateTime?
+  reminderSentAt DateTime?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
 }

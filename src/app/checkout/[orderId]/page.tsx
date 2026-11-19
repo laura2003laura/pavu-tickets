@@ -1,10 +1,10 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getUser } from "@/lib/auth";
 import { validCard } from "@/lib/card";
 import { db } from "@/lib/db";
 import { day, money, time } from "@/lib/format";
-import { cancelPending, checkoutUrl,  markPaidAndIssue, orderLines, reservationIntact } from "@/lib/orders";
+import { checkoutUrl, markPaidAndIssue, orderLines } from "@/lib/orders";
 import { stripe } from "@/lib/stripe";
 import { inYerevan } from "@/lib/yerevan";
 import CheckoutClient from "./CheckoutClient";
@@ -31,25 +31,11 @@ export default async function Checkout({
   if (order.status !== "PENDING") {
     return (
       <main>
-        <h1>Պատվերի ժամանակը սպառվել է</h1>
-        <p className="lead">Ընտրված տեղերը/տոմսերը ազատվել են։ Կարող ես նորից ընտրել։</p>
+        <h1>Պատվերը հասանելի չէ</h1>
+        <p className="lead">Այս պատվերն այլևս հնարավոր չէ ավարտել։ Կարող ես վերադառնալ միջոցառմանը և նոր պատվեր ստեղծել։</p>
         <Link className="btn" href={`/events/${order.eventId}`}>Վերադառնալ միջոցառմանը</Link>
       </main>
     );
-  }
-
-  // Loads the order again inside an action and makes sure it is still ours and still reserved.
-  // Plain helper (not a public action), only called from the actions below.
-  async function loadPending() {
-    const u = await getUser();
-    if (!u) redirect(`/login?next=/checkout/${id}`);
-    const o = await db.order.findFirst({ where: { id, userId: u.id, status: "PENDING" } });
-    if (!o) redirect(`/checkout/${id}`);
-    if (!(await reservationIntact(id))) {
-      await cancelPending(id);
-      redirect(`/checkout/${id}`);
-    }
-    return { u, o };
   }
 
   // ---------- Option 1: pay online ----------
@@ -64,15 +50,25 @@ const o = await db.order.findFirst({
 
 if (!o) redirect(`/checkout/${id}`);
 
-if (o.expiresAt && o.expiresAt <= new Date()) {
-  await cancelPending(id);
-  redirect(`/checkout/${id}?error=expired`);
-}
+const isGift = formData.get("isGift") === "on";
+    const giftRecipientName = String(formData.get("giftRecipientName") ?? "").trim();
+    const giftRecipientPhone = String(formData.get("giftRecipientPhone") ?? "").trim();
+    const giftAnonymous = isGift ? formData.get("giftAnonymous") === "on" : true;
 
-if (!(await reservationIntact(id))) {
-  await cancelPending(id);
-  redirect(`/checkout/${id}`);
-}
+    if (isGift && !/^\+?[0-9 ()-]{8,20}$/.test(giftRecipientPhone)) {
+      redirect(`/checkout/${id}?error=gift`);
+    }
+
+    await db.order.update({
+      where: { id },
+      data: {
+        deliveryMethod: "ONLINE",
+        isGift,
+        giftRecipientName: isGift ? giftRecipientName || null : null,
+        giftRecipientPhone: isGift ? giftRecipientPhone : null,
+        giftAnonymous,
+      },
+    });
 
     if (stripe) {
       // The card is entered on Stripe's own page, so card data never touches this server.
@@ -115,16 +111,7 @@ const o = await db.order.findFirst({
 
 if (!o) redirect(`/checkout/${id}`);
 
-if (o.expiresAt && o.expiresAt <= new Date()) {
-  await cancelPending(id);
-  redirect(`/checkout/${id}?error=expired`);
-}
-
-if (!(await reservationIntact(id))) {
-  await cancelPending(id);
-  redirect(`/checkout/${id}`);
-}
-    const f = (k: string) => String(formData.get(k) ?? "").trim();
+const f = (k: string) => String(formData.get(k) ?? "").trim();
     const phone = f("phone");
     const address = f("address").slice(0, 200);
     const lat = Number(f("lat"));
@@ -155,7 +142,7 @@ if (!(await reservationIntact(id))) {
     <main>
       <h1>Պատվերի ավարտ</h1>
       <p className="lead">
-        {order.event.title} · {day(order.event.startsAt)}, {time(order.event.startsAt)}
+        {order.event.title} В· {day(order.event.startsAt)}, {time(order.event.startsAt)}
       </p>
       <CheckoutClient
         lines={lines.map((l) => ({ name: l.name, qty: l.qty, price: money(l.priceCents * l.qty, l.currency) }))}

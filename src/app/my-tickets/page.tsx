@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+﻿import { redirect } from "next/navigation";
 import QRCode from "qrcode";
 import { getUser } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -15,6 +15,19 @@ export default async function MyTickets({ searchParams }: { searchParams: { paid
   const tickets = await db.ticket.findMany({
     where: { order: { userId: user.id } },
     include: { event: true, ticketType: true, seat: true, order: true },
+    orderBy: { createdAt: "desc" },
+  });
+  const giftInvitations = await db.giftInvitation.findMany({
+    where: {
+      order: { userId: user.id },
+    },
+    include: {
+      order: {
+        include: {
+          event: true,
+        },
+      },
+    },
     orderBy: { createdAt: "desc" },
   });
   const pendingCourierOrders = await db.order.findMany({
@@ -44,7 +57,7 @@ export default async function MyTickets({ searchParams }: { searchParams: { paid
   <div className="tk" key={o.id}>
     <strong style={{ fontSize: 18 }}>{o.event.title}</strong>
     <span className="muted">
-      {day(o.event.startsAt)}, {time(o.event.startsAt)} · {o.event.venue}
+      {day(o.event.startsAt)}, {time(o.event.startsAt)} В· {o.event.venue}
     </span>
     <span>Քանակ՝ {o.quantity}</span>
     <span>Առաքման հասցե՝ {o.deliveryAddress}</span>
@@ -53,11 +66,43 @@ export default async function MyTickets({ searchParams }: { searchParams: { paid
     <span className="muted">QR կոդը կստեղծվի վճարումը հաստատելուց հետո։</span>
   </div>
 ))}
+      {giftInvitations.length > 0 && (
+        <section style={{ marginBottom: "28px" }}>
+          <h2>Իմ նվեր հրավերները</h2>
+          <div className="tickets">
+            {giftInvitations.map((invitation) => (
+              <div className="tk" key={invitation.id}>
+                <strong style={{ fontSize: 18 }}>
+                  {invitation.order.event.title}
+                </strong>
+                <span className="muted">
+                  {day(invitation.order.event.startsAt)}, {time(invitation.order.event.startsAt)} · {invitation.order.event.venue}
+                </span>
+                <span>
+                  Ստացող՝ {invitation.recipientName || "Անունը նշված չէ"}
+                </span>
+                <span className={`badge ${invitation.status}`}>
+                  {invitation.status === "PENDING"
+                    ? "Սպասում է պատասխանին"
+                    : invitation.status === "ACCEPTED"
+                      ? "Հրավերն ընդունվել է"
+                      : "Հրավերը մերժվել է"}
+                </span>
+                {invitation.respondedAt && (
+                  <span className="muted">
+                    Պատասխանի ամսաթիվ՝ {day(invitation.respondedAt)}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
       <div className="tickets">
         {tickets.map((t, i) => (
           <div className="tk" key={t.id}>
             <strong style={{ fontSize: 18 }}>{t.event.title}</strong>
-            <span className="muted">{day(t.event.startsAt)}, {time(t.event.startsAt)} · {t.event.venue}</span>
+            <span className="muted">{day(t.event.startsAt)}, {time(t.event.startsAt)} В· {t.event.venue}</span>
             {waiting(t) ? (
               <span className="muted">🚚 Առաքվում է՝ {t.order.deliveryAddress}<br />QR կոդը կերևա առաքումից հետո։</span>
             ) : (

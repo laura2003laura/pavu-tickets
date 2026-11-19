@@ -1,17 +1,6 @@
-import type { Prisma } from "@prisma/client";
+import { randomBytes } from "node:crypto";
 import { db } from "./db";
 import { appUrl, stripe } from "./stripe";
-
-// General admission: takes `qty` tickets out of stock. Succeeds only while enough remain.
-export async function reserveStock(tx: Prisma.TransactionClient, typeId: string, eventId: string, qty: number) {
-  const n = await tx.$executeRaw`
-    UPDATE "TicketType"
-    SET "quantityReserved" = "quantityReserved" + ${qty}
-    WHERE id = ${typeId}
-      AND "eventId" = ${eventId}
-      AND "quantitySold" + "quantityReserved" + ${qty} <= "quantityTotal"`;
-  return n === 1;
-}
 
 // Creates a Stripe Checkout page for an order. Returns its URL (or null on failure).
 export async function checkoutUrl(
@@ -53,34 +42,38 @@ export async function checkoutUrl(
 export async function markPaidAndIssue(orderId: string) {
   await db.$transaction(async (tx) => {
     const o = await tx.order.findUnique({ where: { id: orderId } });
-
     if (!o || o.status !== "PENDING" || o.deliveryMethod === "COURIER") return;
 
-    if (o.ticketTypeId) {
-      const reserved = await tx.ticketType.updateMany({
-        where: {
-          id: o.ticketTypeId,
-          eventId: o.eventId,
-          quantityReserved: { gte: o.quantity },
-        },
+    const createGiftInvitation = async () => {
+      if (!o.isGift) return;
+      const recipientPhone = o.giftRecipientPhone;
+      if (!recipientPhone) throw new Error("Gift invitation recipient phone is missing");
+
+      await tx.giftInvitation.create({
         data: {
-          quantityReserved: { decrement: o.quantity },
-          quantitySold: { increment: o.quantity },
+          orderId: o.id,
+          recipientName: o.giftRecipientName,
+          recipientPhone,
+          token: randomBytes(32).toString("hex"),
         },
       });
+    };
 
-      if (reserved.count !== 1) {
-        throw new Error("Not enough reserved tickets to complete payment");
-      }
+    if (o.ticketTypeId) {
+      const stock = await tx.$executeRaw`
+        UPDATE "TicketType"
+        SET "quantitySold" = "quantitySold" + ${o.quantity}
+        WHERE id = ${o.ticketTypeId}
+          AND "eventId" = ${o.eventId}
+          AND "quantitySold" + ${o.quantity} <= "quantityTotal"
+      `;
+      if (stock !== 1) throw new Error("Not enough tickets available");
 
       const paid = await tx.order.updateMany({
         where: { id: orderId, status: "PENDING" },
         data: { status: "PAID", paidAt: new Date() },
       });
-
-      if (paid.count !== 1) {
-        throw new Error("Order payment status could not be updated");
-      }
+      if (paid.count !== 1) throw new Error("Order payment status could not be updated");
 
       await tx.ticket.createMany({
         data: Array.from({ length: o.quantity }, () => ({
@@ -89,12 +82,11 @@ export async function markPaidAndIssue(orderId: string) {
           ticketTypeId: o.ticketTypeId!,
         })),
       });
-
+      await createGiftInvitation();
       return;
     }
 
     const ids = o.seatIds;
-
     if (ids.length !== o.quantity || ids.length === 0) {
       throw new Error("Invalid seat selection");
     }
@@ -107,24 +99,15 @@ export async function markPaidAndIssue(orderId: string) {
       },
       include: { seat: true },
     });
-
     if (seats.length !== ids.length) {
       throw new Error("One or more seats are no longer available");
     }
 
-    const types = await tx.ticketType.findMany({
-      where: { eventId: o.eventId },
-    });
-
+    const types = await tx.ticketType.findMany({ where: { eventId: o.eventId } });
     const typeOf = new Map(types.map((t) => [t.name, t.id]));
-
     const ticketData = seats.map((s) => {
       const ticketTypeId = typeOf.get(s.seat.zone);
-
-      if (!ticketTypeId) {
-        throw new Error(`Ticket type not found for zone: ${s.seat.zone}`);
-      }
-
+      if (!ticketTypeId) throw new Error(`Ticket type not found for zone: ${s.seat.zone}`);
       return {
         orderId: o.id,
         eventId: o.eventId,
@@ -139,9 +122,8 @@ export async function markPaidAndIssue(orderId: string) {
         seatId: { in: ids },
         status: "AVAILABLE",
       },
-      data: { status: "SOLD", holdUntil: null },
+      data: { status: "SOLD", orderId: null },
     });
-
     if (sold.count !== ids.length) {
       throw new Error("One or more seats could not be sold");
     }
@@ -150,55 +132,37 @@ export async function markPaidAndIssue(orderId: string) {
       where: { id: orderId, status: "PENDING" },
       data: { status: "PAID", paidAt: new Date() },
     });
-
-    if (paid.count !== 1) {
-      throw new Error("Order payment status could not be updated");
-    }
+    if (paid.count !== 1) throw new Error("Order payment status could not be updated");
 
     await tx.ticket.createMany({ data: ticketData });
+    await createGiftInvitation();
   });
 }
-
 
 export async function markCourierDeliveredAndIssue(orderId: string) {
   await db.$transaction(async (tx) => {
     const o = await tx.order.findUnique({ where: { id: orderId } });
-
     if (!o || o.status !== "PENDING" || o.deliveryMethod !== "COURIER") return;
 
     if (o.ticketTypeId) {
-      const reserved = await tx.ticketType.updateMany({
-        where: {
-          id: o.ticketTypeId,
-          eventId: o.eventId,
-          quantityReserved: { gte: o.quantity },
-        },
-        data: {
-          quantityReserved: { decrement: o.quantity },
-          quantitySold: { increment: o.quantity },
-        },
-      });
-
-      if (reserved.count !== 1) {
-        throw new Error("Reserved courier tickets could not be completed");
-      }
+      const stock = await tx.$executeRaw`
+        UPDATE "TicketType"
+        SET "quantitySold" = "quantitySold" + ${o.quantity}
+        WHERE id = ${o.ticketTypeId}
+          AND "eventId" = ${o.eventId}
+          AND "quantitySold" + ${o.quantity} <= "quantityTotal"
+      `;
+      if (stock !== 1) throw new Error("Not enough courier tickets available");
 
       const paid = await tx.order.updateMany({
-        where: {
-          id: orderId,
-          status: "PENDING",
-          deliveryMethod: "COURIER",
-        },
+        where: { id: orderId, status: "PENDING", deliveryMethod: "COURIER" },
         data: {
           status: "PAID",
           paidAt: new Date(),
           deliveryStatus: "IN_TRANSIT",
         },
       });
-
-      if (paid.count !== 1) {
-        throw new Error("Courier order could not be confirmed");
-      }
+      if (paid.count !== 1) throw new Error("Courier order could not be confirmed");
 
       await tx.ticket.createMany({
         data: Array.from({ length: o.quantity }, () => ({
@@ -207,12 +171,10 @@ export async function markCourierDeliveredAndIssue(orderId: string) {
           ticketTypeId: o.ticketTypeId!,
         })),
       });
-
       return;
     }
 
     const ids = o.seatIds;
-
     if (ids.length !== o.quantity || ids.length === 0) {
       throw new Error("Invalid courier seat selection");
     }
@@ -225,24 +187,15 @@ export async function markCourierDeliveredAndIssue(orderId: string) {
       },
       include: { seat: true },
     });
-
     if (seats.length !== ids.length) {
       throw new Error("One or more courier seats are no longer available");
     }
 
-    const types = await tx.ticketType.findMany({
-      where: { eventId: o.eventId },
-    });
-
+    const types = await tx.ticketType.findMany({ where: { eventId: o.eventId } });
     const typeOf = new Map(types.map((t) => [t.name, t.id]));
-
     const ticketData = seats.map((s) => {
       const ticketTypeId = typeOf.get(s.seat.zone);
-
-      if (!ticketTypeId) {
-        throw new Error(`Ticket type not found for zone: ${s.seat.zone}`);
-      }
-
+      if (!ticketTypeId) throw new Error(`Ticket type not found for zone: ${s.seat.zone}`);
       return {
         orderId: o.id,
         eventId: o.eventId,
@@ -257,76 +210,23 @@ export async function markCourierDeliveredAndIssue(orderId: string) {
         seatId: { in: ids },
         status: "AVAILABLE",
       },
-      data: { status: "SOLD", holdUntil: null },
+      data: { status: "SOLD", orderId: null },
     });
-
     if (sold.count !== ids.length) {
       throw new Error("Not all courier seats could be marked as sold");
     }
 
     const paid = await tx.order.updateMany({
-      where: {
-        id: orderId,
-        status: "PENDING",
-        deliveryMethod: "COURIER",
-      },
+      where: { id: orderId, status: "PENDING", deliveryMethod: "COURIER" },
       data: {
         status: "PAID",
         paidAt: new Date(),
         deliveryStatus: "IN_TRANSIT",
       },
     });
-
-    if (paid.count !== 1) {
-      throw new Error("Courier order could not be confirmed");
-    }
+    if (paid.count !== 1) throw new Error("Courier order could not be confirmed");
 
     await tx.ticket.createMany({ data: ticketData });
-  });
-}
-// Payment failed or expired: release reserved tickets or seats.
-// Payment failed or expired: release reserved tickets or seats.
-export async function cancelPending(orderId: string) {
-  await db.$transaction(async (tx) => {
-    const o = await tx.order.findUnique({ where: { id: orderId } });
-
-    if (!o || o.status !== "PENDING" || o.deliveryMethod === "COURIER") return;
-
-    const claimed = await tx.order.updateMany({
-      where: {
-        id: orderId,
-        status: "PENDING",
-        deliveryMethod: o.deliveryMethod,
-      },
-      data: { status: "CANCELLED" },
-    });
-
-    if (claimed.count !== 1) return;
-
-    if (o.ticketTypeId) {
-      const released = await tx.ticketType.updateMany({
-        where: {
-          id: o.ticketTypeId,
-          quantityReserved: { gte: o.quantity },
-        },
-        data: {
-          quantityReserved: { decrement: o.quantity },
-        },
-      });
-
-      if (released.count !== 1) {
-        throw new Error("Reserved ticket stock could not be released");
-      }
-    } else {
-      await tx.eventSeat.updateMany({
-        where: { orderId: o.id, status: "HELD" },
-        data: {
-          status: "AVAILABLE",
-          orderId: null,
-          holdUntil: null,
-        },
-      });
-    }
   });
 }
 
@@ -352,31 +252,3 @@ export async function orderLines(orderId: string) {
     return { name: `${o.event.title}, ${t.name}`, priceCents: t.priceCents, currency: t.currency, qty };
   });
 }
-
-// True while a PENDING order still owns everything it reserved.
-export async function reservationIntact(orderId: string) {
-  const o = await db.order.findUnique({ where: { id: orderId } });
-  if (!o || o.status !== "PENDING") return false;
-  if (o.ticketTypeId) return true; // general admission: stock was already taken from the counter
-  const ids = o.seatIds;
-
-if (ids.length !== o.quantity || ids.length === 0) {
-  return false;
-}
-
-const n = await db.eventSeat.count({
-  where: {
-    eventId: o.eventId,
-    seatId: { in: ids },
-    status: "AVAILABLE",
-  },
-});
-  return n === o.quantity;
-}
-
-// Gives the buyer more time (used right before sending them to Stripe, so the seats
-// can't be released while the Stripe page is still open). Returns false if the seats were lost.
-
-// Cleans up PENDING orders whose time ran out (e.g. the Stripe webhook never arrived).
-// If Stripe says the order WAS paid, it is completed instead of cancelled.
-

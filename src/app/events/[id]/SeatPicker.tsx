@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { money } from "@/lib/format";
 
@@ -15,7 +15,7 @@ type Seat = {
   col: number;
   zone: string;
   taken: boolean;
-  holdUntil: string | null;
+
 };
 type Zone = { name: string; priceCents: number; currency: string };
 
@@ -26,18 +26,8 @@ export default function SeatPicker({
   seats, zones, action,
 }: { seats: Seat[]; zones: Zone[]; action: (formData: FormData) => Promise<void> }) {
   const [sel, setSel] = useState<string[]>([]);
-  const [now, setNow] = useState(0);
 
-useEffect(() => {
-  setNow(Date.now());
-
-  const timer = window.setInterval(() => {
-    setNow(Date.now());
-  }, 1000);
-
-  return () => window.clearInterval(timer);
-}, []);
-  const zoneNames = useMemo(() => zones.map((z) => z.name), [zones]);
+const zoneNames = useMemo(() => zones.map((z) => z.name), [zones]);
   const byId = useMemo(() => new Map(seats.map((s) => [s.id, s])), [seats]);
   const zoneOf = useMemo(() => new Map(zones.map((z) => [z.name, z])), [zones]);
   const color = (zone: string) => COLORS[Math.max(0, zones.findIndex((z) => z.name === zone)) % COLORS.length];
@@ -51,14 +41,8 @@ useEffect(() => {
     return [...m.entries()].sort((a, b) => Number(a[0]) - Number(b[0]));
   }, [seats]);
   const maxCol = Math.max(1, ...seats.map((s) => s.col));
-const remaining = (until: string | null) => {
-  if (!until) return "";
-  const ms = Math.max(0, new Date(until).getTime() - now);
-  const min = Math.floor(ms / 60000).toString().padStart(2, "0");
-  const sec = Math.floor((ms % 60000) / 1000).toString().padStart(2, "0");
-  return `${min}:${sec}`;
-};
-  const toggle = (id: string) =>
+
+const toggle = (id: string) =>
     setSel((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : cur.length < MAX ? [...cur, id] : cur));
 
   const total = sel.reduce((sum, id) => sum + (zoneOf.get(byId.get(id)!.zone)?.priceCents ?? 0), 0);
@@ -84,7 +68,7 @@ const remaining = (until: string | null) => {
                 <button
                   key={s.id}
                   type="button"
-                  title={s.holdUntil ? `Մնացել է ${remaining(s.holdUntil)}` : ""}
+
                   disabled={s.taken}
                   onClick={() => toggle(s.id)}
                   aria-pressed={on}

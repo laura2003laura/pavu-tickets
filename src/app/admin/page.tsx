@@ -40,6 +40,9 @@ export default async function Admin() {
   <Link className="btn ghost" href="/admin/volunteers">
     Կամավորների հայտեր
   </Link>
+  <Link className="btn ghost" href="/admin/gift-invitations">
+    Նվեր հրավիրատոմսեր
+  </Link>
 </p>
       <div style={{ overflowX: "auto" }}>
         <table>

@@ -1,6 +1,6 @@
 
 import { NextResponse } from "next/server";
-import { cancelPending, markPaidAndIssue } from "@/lib/orders";
+import { markPaidAndIssue } from "@/lib/orders";
 import { db } from "@/lib/db";
 import { stripe } from "@/lib/stripe";
 
@@ -103,23 +103,6 @@ export async function POST(req: Request) {
             { status: 500 }
           );
         }
-      }
-    }
-  } else if (event.type === "checkout.session.expired") {
-    const session = event.data.object;
-    const orderId = session.metadata?.orderId;
-
-    if (orderId) {
-      const order = await db.order.findUnique({
-        where: { id: orderId },
-        select: { stripeSessionId: true },
-      });
-
-      if (
-        order &&
-        (!order.stripeSessionId || order.stripeSessionId === session.id)
-      ) {
-        await cancelPending(orderId);
       }
     }
   }

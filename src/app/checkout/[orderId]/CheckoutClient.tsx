@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import { useState } from "react";
 import dynamic from "next/dynamic";
 
@@ -30,13 +30,15 @@ export default function CheckoutClient({ lines, total, stripeEnabled, error, pay
   const [pt, setPt] = useState<{ lat: number; lng: number } | null>(null);
   const [address, setAddress] = useState("");
   const [card, setCard] = useState({ number: "", expiry: "", cvc: "", holder: "" });
+  const [isGift, setIsGift] = useState(false);
+  const [giftAnonymous, setGiftAnonymous] = useState(true);
 
   return (
     <div className="stack" style={{ maxWidth: 640 }}>
       <div className="panel" style={{ maxWidth: 640 }}>
         {lines.map((l) => (
           <div key={l.name} style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
-            <span>{l.name} × {l.qty}</span><span>{l.price}</span>
+            <span>{l.name} Г— {l.qty}</span><span>{l.price}</span>
           </div>
         ))}
         <p style={{ margin: "12px 0 0", fontWeight: 800 }}>Ընդամենը՝ {total}</p>
@@ -60,6 +62,46 @@ export default function CheckoutClient({ lines, total, stripeEnabled, error, pay
           <h3 style={{ margin: 0 }}>Վճարում քարտով</h3>
           {error === "card" && <p className="err">Քարտի տվյալները սխալ են։ Ստուգիր համարը, ժամկետը և CVC-ն։</p>}
           {error === "payment" && <p className="err">Վճարումը չհաջողվեց սկսել։ Փորձիր նորից։</p>}
+          <div className="stack" style={{ padding: "14px 0", borderTop: "1px solid var(--line, #ddd)", borderBottom: "1px solid var(--line, #ddd)" }}>
+            <label style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <input
+                type="checkbox"
+                name="isGift"
+                checked={isGift}
+                onChange={(e) => setIsGift(e.target.checked)}
+              />
+              <strong>Գնել որպես նվեր</strong>
+            </label>
+
+            {isGift && (
+              <>
+                <label>Ստացողի անունը (պարտադիր չէ)
+                  <input name="giftRecipientName" maxLength={100} placeholder="Ստացողի անունը" />
+                </label>
+                <label>Ստացողի հեռախոսահամարը
+                  <input
+                    name="giftRecipientPhone"
+                    type="tel"
+                    required
+                    autoComplete="tel"
+                    placeholder="+374 77 123456"
+                    pattern="\+?[0-9 ()-]{8,20}"
+                  />
+                </label>
+                <label style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <input
+                    type="checkbox"
+                    name="giftAnonymous"
+                    checked={giftAnonymous}
+                    onChange={(e) => setGiftAnonymous(e.target.checked)}
+                  />
+                  Ուղարկել անանուն
+                </label>
+              </>
+            )}
+          </div>
+          {error === "gift" && <p className="err">Նշեք ստացողի վավեր հեռախոսահամարը։</p>}
+
           {stripeEnabled ? (
             <>
               <p className="muted" style={{ margin: 0 }}>
