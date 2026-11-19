@@ -20,7 +20,10 @@ export default async function Home({ searchParams }: { searchParams: { q?: strin
   const events = await db.event.findMany({
     where: {
       isPublished: true,
-      startsAt: { gte: new Date() },
+      OR: [
+  { endsAt: { gte: new Date() } },
+  { endsAt: null, startsAt: { gte: new Date() } },
+],
       ...(cat ? { category: cat } : {}),
       ...(q
         ? { OR: [
