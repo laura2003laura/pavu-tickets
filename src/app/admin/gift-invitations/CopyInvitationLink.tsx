@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 
@@ -16,7 +16,7 @@ export default function CopyInvitationLink({ url }: { url: string }) {
 
   return (
     <button type="button" className="btn" onClick={copyLink}>
-      {copied ? "?????? ?????????" : "???????? ??????? ??????"}
+      {copied ? "Հղումը պատճենվեց" : "Պատճենել հրավերի հղումը"}
     </button>
   );
 }
