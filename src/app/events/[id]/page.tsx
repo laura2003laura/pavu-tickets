@@ -26,7 +26,7 @@ export default async function EventPage({
     include: { ticketTypes: { orderBy: { priceCents: "asc" } }, hall: true },
   });
   if (!event || !event.isPublished) notFound();
-  const past = (event.endsAt ?? event.startsAt) < new Date();
+  const past = event.startsAt <= new Date();
 
   // ---------- general admission ----------
   async function buy(formData: FormData) {
@@ -34,7 +34,7 @@ export default async function EventPage({
     const user = await getUser();
     if (!user) redirect(`/login?next=/events/${id}`);
 
-    if ((event!.endsAt ?? event!.startsAt) < new Date()) redirect(`/events/${id}?error=past`);
+    if (event!.startsAt <= new Date()) redirect(`/events/${id}?error=past`);
     const typeId = String(formData.get("typeId"));
     const qty = Math.min(10, Math.max(1, Number(formData.get("qty")) || 1));
     const tt = await db.ticketType.findFirst({ where: { id: typeId, eventId: id }, include: { event: true } });
@@ -65,7 +65,7 @@ async function buySeats(formData: FormData) {
 
   const user = await getUser();
   if (!user) redirect(`/login?next=/events/${id}`);
-  if ((event!.endsAt ?? event!.startsAt) < new Date()) redirect(`/events/${id}?error=past`);
+  if (event!.startsAt <= new Date()) redirect(`/events/${id}?error=past`);
 
   const ids = [...new Set(formData.getAll("seatId").map(String))];
 
