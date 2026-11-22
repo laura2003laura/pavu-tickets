@@ -11,15 +11,16 @@ import FieldView3D from "./FieldView3D";
 export const dynamic = "force-dynamic";
 
 
-export default async function EventPage({
-  params,
-  searchParams,
-}: {
-  params: { id: string };
-  searchParams: { error?: string; volunteer?: string };
-}) {
+export default async function EventPage(
+  props: {
+    params: Promise<{ id: string }>;
+    searchParams: Promise<{ error?: string; volunteer?: string }>;
+  }
+) {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
   const id = params.id;
-  
+
   const event = await db.event.findUnique({
     where: { id },
     include: { ticketTypes: { orderBy: { priceCents: "asc" } }, hall: true },
@@ -55,72 +56,72 @@ export default async function EventPage({
   }
 
   // ---------- seated ----------
-  
-async function buySeats(formData: FormData) {
-  "use server";
 
-  const user = await getUser();
-  if (!user) redirect(`/login?next=/events/${id}`);
-  if (event!.startsAt <= new Date()) redirect(`/events/${id}?error=past`);
+  async function buySeats(formData: FormData) {
+    "use server";
 
-  const ids = [...new Set(formData.getAll("seatId").map(String))];
+    const user = await getUser();
+    if (!user) redirect(`/login?next=/events/${id}`);
+    if (event!.startsAt <= new Date()) redirect(`/events/${id}?error=past`);
 
-  if (ids.length < 1 || ids.length > 8) {
-    redirect(`/events/${id}?error=count`);
-  }
+    const ids = [...new Set(formData.getAll("seatId").map(String))];
 
-  const [chosen, types] = await Promise.all([
-    db.eventSeat.findMany({
-      where: {
-        eventId: id,
-        seatId: { in: ids },
-      },
-      include: { seat: true },
-    }),
-    db.ticketType.findMany({
-      where: { eventId: id },
-    }),
-  ]);
+    if (ids.length < 1 || ids.length > 8) {
+      redirect(`/events/${id}?error=count`);
+    }
 
-  if (
-    chosen.length !== ids.length ||
-    chosen.some((seat) => seat.status !== "AVAILABLE")
-  ) {
-    redirect(`/events/${id}?error=taken`);
-  }
+    const [chosen, types] = await Promise.all([
+      db.eventSeat.findMany({
+        where: {
+          eventId: id,
+          seatId: { in: ids },
+        },
+        include: { seat: true },
+      }),
+      db.ticketType.findMany({
+        where: { eventId: id },
+      }),
+    ]);
 
-  const typeOf = new Map(types.map((t) => [t.name, t]));
-  let total = 0;
-
-  for (const cs of chosen) {
-    const t = typeOf.get(cs.seat.zone);
-    if (!t) redirect(`/events/${id}?error=taken`);
-    total += t.priceCents;
-  }
-
-  let order;
-
-  try {
-    order = await db.order.create({
-      data: {
-        userId: user.id,
-        eventId: id,
-        quantity: ids.length,
-        seatIds: ids,
-        status: "PENDING",
-        totalCents: total,
-        currency: types[0].currency,
-      },
-    });
-  } catch (error) {
-    if (error instanceof Error && error.message === "SEATS_TAKEN") {
+    if (
+      chosen.length !== ids.length ||
+      chosen.some((seat) => seat.status !== "AVAILABLE")
+    ) {
       redirect(`/events/${id}?error=taken`);
     }
-    throw error;
-  }
 
-  redirect(`/checkout/${order.id}`);
-}
+    const typeOf = new Map(types.map((t) => [t.name, t]));
+    let total = 0;
+
+    for (const cs of chosen) {
+      const t = typeOf.get(cs.seat.zone);
+      if (!t) redirect(`/events/${id}?error=taken`);
+      total += t.priceCents;
+    }
+
+    let order;
+
+    try {
+      order = await db.order.create({
+        data: {
+          userId: user.id,
+          eventId: id,
+          quantity: ids.length,
+          seatIds: ids,
+          status: "PENDING",
+          totalCents: total,
+          currency: types[0].currency,
+        },
+      });
+    } catch (error) {
+      if (error instanceof Error && error.message === "SEATS_TAKEN") {
+        redirect(`/events/${id}?error=taken`);
+      }
+      throw error;
+    }
+
+    redirect(`/checkout/${order.id}`);
+  }
 
   async function applyVolunteer(formData: FormData) {
     "use server";
@@ -138,30 +139,30 @@ async function buySeats(formData: FormData) {
     await db.volunteerApplication.create({ data: { eventId: id, firstName, lastName, phone, telegram: `@${telegram}`, birthDate } });
     return { success: true };
   }
-let seatData: {
-  id: string;
-  row: string;
-  number: number;
-  col: number;
-  zone: string;
-  taken: boolean;
-}[] = [];
+  let seatData: {
+    id: string;
+    row: string;
+    number: number;
+    col: number;
+    zone: string;
+    taken: boolean;
+  }[] = [];
 
-if (event.hallId) {
-  const list = await db.eventSeat.findMany({
-    where: { eventId: id },
-    include: { seat: true },
-  });
+  if (event.hallId) {
+    const list = await db.eventSeat.findMany({
+      where: { eventId: id },
+      include: { seat: true },
+    });
 
-  seatData = list.map((es) => ({
-    id: es.seatId,
-    row: es.seat.rowLabel,
-    number: es.seat.number,
-    col: es.seat.col,
-    zone: es.seat.zone,
-    taken: es.status === "SOLD",
-  }));
-}
+    seatData = list.map((es) => ({
+      id: es.seatId,
+      row: es.seat.rowLabel,
+      number: es.seat.number,
+      col: es.seat.col,
+      zone: es.seat.zone,
+      taken: es.status === "SOLD",
+    }));
+  }
 
   return (
     <main>

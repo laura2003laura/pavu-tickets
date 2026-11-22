@@ -6,13 +6,14 @@ import { createSession, safeNext } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { allow, clearLimit } from "@/lib/rateLimit";
 
-export default function Login({ searchParams }: { searchParams: { next?: string; error?: string } }) {
+export default async function Login(props: { searchParams: Promise<{ next?: string; error?: string }> }) {
+  const searchParams = await props.searchParams;
   const next = safeNext(searchParams.next);
 
   async function login(formData: FormData) {
     "use server";
     const email = String(formData.get("email")).trim().toLowerCase();
-    const ip = headers().get("x-forwarded-for")?.split(",")[0].trim() ?? "local";
+    const ip = (await headers()).get("x-forwarded-for")?.split(",")[0].trim() ?? "local";
     const limitKey = `login:${email}:${ip}`;
     // at most 8 attempts per 10 minutes for the same email from the same address
     if (!allow(limitKey, 8, 10 * 60 * 1000)) redirect(`/login?error=rate&next=${encodeURIComponent(next)}`);

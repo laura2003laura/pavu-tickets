@@ -12,13 +12,14 @@ import CheckoutClient from "./CheckoutClient";
 export const dynamic = "force-dynamic";
 
 
-export default async function Checkout({
-  params,
-  searchParams,
-}: {
-  params: { orderId: string };
-  searchParams: { error?: string };
-}) {
+export default async function Checkout(
+  props: {
+    params: Promise<{ orderId: string }>;
+    searchParams: Promise<{ error?: string }>;
+  }
+) {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
   const id = params.orderId;
   const user = await getUser();
   if (!user) redirect(`/login?next=/checkout/${id}`);
@@ -99,7 +100,7 @@ const isGift = formData.get("isGift") === "on";
   }
 
   // ---------- Option 2: delivery to a point in Yerevan (pay the courier) ----------
-  
+
   async function orderDelivery(formData: FormData) {
     "use server";
    const u = await getUser();

@@ -4,7 +4,8 @@ import { db } from "@/lib/db";
 
 const CATS = ["Երաժշտություն", "Թատրոն", "Ստենդափ", "Սպորտ", "Կոնֆերանս"];
 
-export default async function NewEvent({ searchParams }: { searchParams: { error?: string } }) {
+export default async function NewEvent(props: { searchParams: Promise<{ error?: string }> }) {
+  const searchParams = await props.searchParams;
   await requireAdmin();
   const halls = await db.hall.findMany({ orderBy: { name: "asc" } });
   const zones = (await db.seat.groupBy({ by: ["zone"] })).map((z) => z.zone);

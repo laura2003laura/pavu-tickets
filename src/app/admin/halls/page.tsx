@@ -6,7 +6,8 @@ import { seatRows } from "@/lib/halls";
 
 export const dynamic = "force-dynamic";
 
-export default async function Halls({ searchParams }: { searchParams: { error?: string } }) {
+export default async function Halls(props: { searchParams: Promise<{ error?: string }> }) {
+  const searchParams = await props.searchParams;
   await requireAdmin();
   const halls = await db.hall.findMany({ orderBy: { name: "asc" }, include: { _count: { select: { seats: true, events: true } } } });
   const zoneRows = await db.seat.groupBy({ by: ["hallId", "zone"], _count: { _all: true } });

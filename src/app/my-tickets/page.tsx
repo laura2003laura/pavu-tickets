@@ -8,7 +8,8 @@ import { makeToken } from "@/lib/ticket";
 export const dynamic = "force-dynamic";
 const LABEL = { VALID: "Վավեր", USED: "Օգտագործված", CANCELLED: "Չեղարկված" } as const;
 
-export default async function MyTickets({ searchParams }: { searchParams: { paid?: string; delivery?: string } }) {
+export default async function MyTickets(props: { searchParams: Promise<{ paid?: string; delivery?: string }> }) {
+  const searchParams = await props.searchParams;
   const user = await getUser();
   if (!user) redirect("/login?next=/my-tickets");
 

@@ -35,15 +35,16 @@ async function changeVolunteerStatus(formData: FormData) {
   revalidatePath("/admin/volunteers");
 }
 
-export default async function AdminVolunteers({
-  searchParams,
-}: {
-  searchParams: {
-    search?: string;
-    status?: string;
-    eventId?: string;
-  };
-}) {
+export default async function AdminVolunteers(
+  props: {
+    searchParams: Promise<{
+      search?: string;
+      status?: string;
+      eventId?: string;
+    }>;
+  }
+) {
+  const searchParams = await props.searchParams;
   await requireAdmin();
 
   const search = (searchParams.search ?? "").trim();
@@ -53,11 +54,11 @@ export default async function AdminVolunteers({
   const events = await db.event.findMany({
     orderBy: { startsAt: "desc" },
   });
-const allowedStatuses = ["PENDING", "APPROVED", "REJECTED", "RESERVE"];
+  const allowedStatuses = ["PENDING", "APPROVED", "REJECTED", "RESERVE"];
 
-const selectedStatus = allowedStatuses.includes(status)
-  ? status
-  : "";
+  const selectedStatus = allowedStatuses.includes(status)
+    ? status
+    : "";
   const applications = await db.volunteerApplication.findMany({
  where: {
   ...(selectedStatus

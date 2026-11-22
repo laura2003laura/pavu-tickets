@@ -14,7 +14,8 @@ const cover = (category: string) => category === "Երաժշտություն"
   ? "https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1000&q=80"
   : "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=1000&q=80";
 
-export default async function Home({ searchParams }: { searchParams: { q?: string; cat?: string } }) {
+export default async function Home(props: { searchParams: Promise<{ q?: string; cat?: string }> }) {
+  const searchParams = await props.searchParams;
   const q = searchParams.q?.trim();
   const cat = searchParams.cat;
   const events = await db.event.findMany({

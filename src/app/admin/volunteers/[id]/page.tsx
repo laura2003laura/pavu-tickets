@@ -14,11 +14,12 @@ const statusLabel: Record<string, string> = {
   RESERVE: "Ռեզերվ",
 };
 
-export default async function EditVolunteerPage({
-  params,
-}: {
-  params: { id: string };
-}) {
+export default async function EditVolunteerPage(
+  props: {
+    params: Promise<{ id: string }>;
+  }
+) {
+  const params = await props.params;
   await requireAdmin();
 
   const application = await db.volunteerApplication.findUnique({

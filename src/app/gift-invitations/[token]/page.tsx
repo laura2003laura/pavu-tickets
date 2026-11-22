@@ -3,9 +3,9 @@ import { db } from "@/lib/db";
 import { day, time } from "@/lib/format";
 
 type PageProps = {
-  params: {
+  params: Promise<{
     token: string;
-  };
+  }>;
 };
 
 async function respondToInvitation(formData: FormData) {
@@ -44,7 +44,8 @@ async function respondToInvitation(formData: FormData) {
   redirect(`/gift-invitations/${token}`);
 }
 
-export default async function GiftInvitationPage({ params }: PageProps) {
+export default async function GiftInvitationPage(props: PageProps) {
+  const params = await props.params;
   const invitation = await db.giftInvitation.findUnique({
     where: { token: params.token },
     include: {

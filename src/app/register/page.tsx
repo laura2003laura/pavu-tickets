@@ -7,10 +7,11 @@ import { createSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { allow } from "@/lib/rateLimit";
 
-export default function Register({ searchParams }: { searchParams: { error?: string } }) {
+export default async function Register(props: { searchParams: Promise<{ error?: string }> }) {
+  const searchParams = await props.searchParams;
   async function register(formData: FormData) {
     "use server";
-    const ip = headers().get("x-forwarded-for")?.split(",")[0].trim() ?? "local";
+    const ip = (await headers()).get("x-forwarded-for")?.split(",")[0].trim() ?? "local";
     if (!allow(`register:${ip}`, 10, 60 * 60 * 1000)) redirect("/register?error=rate");
     const name = String(formData.get("name")).trim().slice(0, 80);
     const email = String(formData.get("email")).trim().toLowerCase();

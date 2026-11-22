@@ -6,7 +6,8 @@ import { SCAN_LABEL, day, money, time } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminEvent({ params }: { params: { id: string } }) {
+export default async function AdminEvent(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   await requireAdmin();
   const id = params.id;
   const event = await db.event.findUnique({ where: { id }, include: { ticketTypes: true } });

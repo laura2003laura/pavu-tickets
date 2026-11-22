@@ -36,6 +36,6 @@
   ],
   "exclude": [
     "node_modules",
-    "backup-no-holds-2026-11-19T19-35-22-078Z"
+    "backup-*"
   ]
 }

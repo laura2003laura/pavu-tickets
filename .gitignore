@@ -8,3 +8,13 @@ tsconfig.tsbuildinfo
 *.pem
 *.log
 reset-database.js
+
+# Local backups and temporary files
+backup-*/
+*.bak
+*.backup
+*.backup*
+*.before-*
+*.encoding-backup
+
+PAVU-FULL-BACKUP-*.json

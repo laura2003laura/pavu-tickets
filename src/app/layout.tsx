@@ -13,7 +13,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   async function logout() {
     "use server";
-    endSession();
+    await endSession();
     redirect("/");
   }
 
