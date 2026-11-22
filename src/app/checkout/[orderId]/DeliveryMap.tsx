@@ -25,7 +25,10 @@ export default function DeliveryMap({ onPick }: Props) {
         center: YEREVAN_CENTER,
         zoom: 13,
         minZoom: 11,
-        maxBounds: [[B.latMin - 0.05, B.lngMin - 0.08], [B.latMax + 0.05, B.lngMax + 0.08]],
+        maxBounds: [
+          [B.latMin - 0.05, B.lngMin - 0.08],
+          [B.latMax + 0.05, B.lngMax + 0.08],
+        ],
         maxBoundsViscosity: 1,
       });
       L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -33,12 +36,19 @@ export default function DeliveryMap({ onPick }: Props) {
         attribution: "&copy; OpenStreetMap",
       }).addTo(map);
 
-      const icon = L.divIcon({ className: "pin", html: "📍", iconSize: [28, 28], iconAnchor: [14, 26] });
+      const icon = L.divIcon({
+        className: "pin",
+        html: "📍",
+        iconSize: [28, 28],
+        iconAnchor: [14, 26],
+      });
       let marker: any = null;
 
       const place = async (lat: number, lng: number) => {
         if (!inYerevan(lat, lng)) {
-          setMsg("Առաքումը հասանելի է միայն Երևանում։ Նշիր կետ քաղաքի սահմաններում։");
+          setMsg(
+            "Առաքումը հասանելի է միայն Երևանում։ Նշիր կետ քաղաքի սահմաններում։",
+          );
           return;
         }
         setMsg("");
@@ -50,17 +60,20 @@ export default function DeliveryMap({ onPick }: Props) {
             `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&accept-language=hy`,
           );
           const j = await r.json();
-          if (!gone && j?.display_name) pick.current(lat, lng, String(j.display_name).slice(0, 200));
+          if (!gone && j?.display_name)
+            pick.current(lat, lng, String(j.display_name).slice(0, 200));
         } catch {} // address can always be typed by hand
       };
 
       map.on("click", (e: any) => place(e.latlng.lat, e.latlng.lng));
       locate.current = () => {
-        if (!navigator.geolocation) return setMsg("Դիրքի որոշումը հասանելի չէ այս սարքում։");
+        if (!navigator.geolocation)
+          return setMsg("Դիրքի որոշումը հասանելի չէ այս սարքում։");
         navigator.geolocation.getCurrentPosition(
           (p) => {
             const { latitude, longitude } = p.coords;
-            if (!inYerevan(latitude, longitude)) return setMsg("Դու Երևանից դուրս ես, նշիր կետը ձեռքով։");
+            if (!inYerevan(latitude, longitude))
+              return setMsg("Դու Երևանից դուրս ես, նշիր կետը ձեռքով։");
             map.setView([latitude, longitude], 16);
             place(latitude, longitude);
           },
@@ -77,9 +90,27 @@ export default function DeliveryMap({ onPick }: Props) {
   return (
     <div>
       <div ref={el} className="map" />
-      <div style={{ display: "flex", gap: 12, alignItems: "center", marginTop: 8, flexWrap: "wrap" }}>
-        <button type="button" className="btn ghost" onClick={() => locate.current()}>Օգտագործել իմ դիրքը</button>
-        {msg && <span className="err" style={{ fontSize: 14 }}>{msg}</span>}
+      <div
+        style={{
+          display: "flex",
+          gap: 12,
+          alignItems: "center",
+          marginTop: 8,
+          flexWrap: "wrap",
+        }}
+      >
+        <button
+          type="button"
+          className="btn ghost"
+          onClick={() => locate.current()}
+        >
+          Օգտագործել իմ դիրքը
+        </button>
+        {msg && (
+          <span className="err" style={{ fontSize: 14 }}>
+            {msg}
+          </span>
+        )}
       </div>
     </div>
   );

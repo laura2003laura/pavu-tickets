@@ -29,9 +29,9 @@ export async function getUser() {
     const { payload } = await jwtVerify(token, key());
     return await db.user.findUnique({ where: { id: String(payload.sub) } });
   } catch (error) {
-  console.error("GET USER ERROR:", error);
-  return null;
-}
+    console.error("GET USER ERROR:", error);
+    return null;
+  }
 }
 
 export async function endSession() {

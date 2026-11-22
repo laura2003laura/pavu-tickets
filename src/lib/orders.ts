@@ -28,7 +28,10 @@ export async function checkoutUrl(
         },
       })),
     });
-    await db.order.update({ where: { id: orderId }, data: { stripeSessionId: session.id } });
+    await db.order.update({
+      where: { id: orderId },
+      data: { stripeSessionId: session.id },
+    });
     return session.url;
   } catch (e) {
     console.error("Stripe error", e);
@@ -38,7 +41,6 @@ export async function checkoutUrl(
 
 // Called by the Stripe webhook. Safe to call twice: only a PENDING order is processed.
 
-
 export async function markPaidAndIssue(orderId: string) {
   await db.$transaction(async (tx) => {
     const o = await tx.order.findUnique({ where: { id: orderId } });
@@ -47,7 +49,8 @@ export async function markPaidAndIssue(orderId: string) {
     const createGiftInvitation = async () => {
       if (!o.isGift) return;
       const recipientPhone = o.giftRecipientPhone;
-      if (!recipientPhone) throw new Error("Gift invitation recipient phone is missing");
+      if (!recipientPhone)
+        throw new Error("Gift invitation recipient phone is missing");
 
       await tx.giftInvitation.create({
         data: {
@@ -73,7 +76,8 @@ export async function markPaidAndIssue(orderId: string) {
         where: { id: orderId, status: "PENDING" },
         data: { status: "PAID", paidAt: new Date() },
       });
-      if (paid.count !== 1) throw new Error("Order payment status could not be updated");
+      if (paid.count !== 1)
+        throw new Error("Order payment status could not be updated");
 
       await tx.ticket.createMany({
         data: Array.from({ length: o.quantity }, () => ({
@@ -103,11 +107,14 @@ export async function markPaidAndIssue(orderId: string) {
       throw new Error("One or more seats are no longer available");
     }
 
-    const types = await tx.ticketType.findMany({ where: { eventId: o.eventId } });
+    const types = await tx.ticketType.findMany({
+      where: { eventId: o.eventId },
+    });
     const typeOf = new Map(types.map((t) => [t.name, t.id]));
     const ticketData = seats.map((s) => {
       const ticketTypeId = typeOf.get(s.seat.zone);
-      if (!ticketTypeId) throw new Error(`Ticket type not found for zone: ${s.seat.zone}`);
+      if (!ticketTypeId)
+        throw new Error(`Ticket type not found for zone: ${s.seat.zone}`);
       return {
         orderId: o.id,
         eventId: o.eventId,
@@ -132,7 +139,8 @@ export async function markPaidAndIssue(orderId: string) {
       where: { id: orderId, status: "PENDING" },
       data: { status: "PAID", paidAt: new Date() },
     });
-    if (paid.count !== 1) throw new Error("Order payment status could not be updated");
+    if (paid.count !== 1)
+      throw new Error("Order payment status could not be updated");
 
     await tx.ticket.createMany({ data: ticketData });
     await createGiftInvitation();
@@ -162,7 +170,8 @@ export async function markCourierDeliveredAndIssue(orderId: string) {
           deliveryStatus: "IN_TRANSIT",
         },
       });
-      if (paid.count !== 1) throw new Error("Courier order could not be confirmed");
+      if (paid.count !== 1)
+        throw new Error("Courier order could not be confirmed");
 
       await tx.ticket.createMany({
         data: Array.from({ length: o.quantity }, () => ({
@@ -191,11 +200,14 @@ export async function markCourierDeliveredAndIssue(orderId: string) {
       throw new Error("One or more courier seats are no longer available");
     }
 
-    const types = await tx.ticketType.findMany({ where: { eventId: o.eventId } });
+    const types = await tx.ticketType.findMany({
+      where: { eventId: o.eventId },
+    });
     const typeOf = new Map(types.map((t) => [t.name, t.id]));
     const ticketData = seats.map((s) => {
       const ticketTypeId = typeOf.get(s.seat.zone);
-      if (!ticketTypeId) throw new Error(`Ticket type not found for zone: ${s.seat.zone}`);
+      if (!ticketTypeId)
+        throw new Error(`Ticket type not found for zone: ${s.seat.zone}`);
       return {
         orderId: o.id,
         eventId: o.eventId,
@@ -224,7 +236,8 @@ export async function markCourierDeliveredAndIssue(orderId: string) {
         deliveryStatus: "IN_TRANSIT",
       },
     });
-    if (paid.count !== 1) throw new Error("Courier order could not be confirmed");
+    if (paid.count !== 1)
+      throw new Error("Courier order could not be confirmed");
 
     await tx.ticket.createMany({ data: ticketData });
   });
@@ -232,23 +245,39 @@ export async function markCourierDeliveredAndIssue(orderId: string) {
 
 // Stripe line items rebuilt from an existing order (used by the checkout page).
 export async function orderLines(orderId: string) {
-  const o = await db.order.findUniqueOrThrow({ where: { id: orderId }, include: { event: true } });
+  const o = await db.order.findUniqueOrThrow({
+    where: { id: orderId },
+    include: { event: true },
+  });
   const types = await db.ticketType.findMany({ where: { eventId: o.eventId } });
   if (o.ticketTypeId) {
     const t = types.find((x) => x.id === o.ticketTypeId)!;
-    return [{ name: `${o.event.title}, ${t.name}`, priceCents: t.priceCents, currency: t.currency, qty: o.quantity }];
+    return [
+      {
+        name: `${o.event.title}, ${t.name}`,
+        priceCents: t.priceCents,
+        currency: t.currency,
+        qty: o.quantity,
+      },
+    ];
   }
   const seats = await db.eventSeat.findMany({
-  where: {
-    eventId: o.eventId,
-    seatId: { in: o.seatIds },
-  },
-  include: { seat: true },
-});
+    where: {
+      eventId: o.eventId,
+      seatId: { in: o.seatIds },
+    },
+    include: { seat: true },
+  });
   const byZone = new Map<string, number>();
-  for (const s of seats) byZone.set(s.seat.zone, (byZone.get(s.seat.zone) ?? 0) + 1);
+  for (const s of seats)
+    byZone.set(s.seat.zone, (byZone.get(s.seat.zone) ?? 0) + 1);
   return [...byZone].map(([zone, qty]) => {
     const t = types.find((x) => x.name === zone)!;
-    return { name: `${o.event.title}, ${t.name}`, priceCents: t.priceCents, currency: t.currency, qty };
+    return {
+      name: `${o.event.title}, ${t.name}`,
+      priceCents: t.priceCents,
+      currency: t.currency,
+      qty,
+    };
   });
 }

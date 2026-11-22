@@ -10,7 +10,10 @@ export default async function ScannerPage() {
   if (!user) redirect("/login?next=/scanner");
   if (user.role !== "STAFF" && user.role !== "ADMIN") redirect("/");
   const events = await db.event.findMany({
-    where: { isPublished: true, startsAt: { gte: new Date(Date.now() - 24 * 3600 * 1000) } }, // today and upcoming
+    where: {
+      isPublished: true,
+      startsAt: { gte: new Date(Date.now() - 24 * 3600 * 1000) },
+    }, // today and upcoming
     orderBy: { startsAt: "asc" },
     select: { id: true, title: true },
   });

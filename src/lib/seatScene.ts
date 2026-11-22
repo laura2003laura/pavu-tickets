@@ -1,17 +1,30 @@
 // @ts-nocheck
 // 3D hall + "view from my seat". Plain three.js code shared with the demo page.
-export function createSeatScene(THREE: any, el: HTMLElement, seats: any[], zoneNames: string[], getState: () => { selectedId: string | null; mode: string }): () => void {
+export function createSeatScene(
+  THREE: any,
+  el: HTMLElement,
+  seats: any[],
+  zoneNames: string[],
+  getState: () => { selectedId: string | null; mode: string },
+): () => void {
   const COLORS = ["#ff9447", "#8f6bff", "#3ec9a7", "#e0556f", "#4b7bff"];
-  const SW = 0.62, RD = 0.95, RISE = 0.24;
+  const SW = 0.62,
+    RD = 0.95,
+    RISE = 0.24;
   const maxCol = Math.max(1, ...seats.map((s) => s.col));
   const maxRow = Math.max(1, ...seats.map((s) => Number(s.row)));
   const cx = (maxCol + 1) / 2;
   const isBalcony = (s) => s.zone === "Պատշգամբ";
   const pos = (s) => {
     const r = Number(s.row) - 1;
-    return new THREE.Vector3((s.col - cx) * SW, r * RISE + (isBalcony(s) ? 1.6 : 0), 4 + r * RD + (isBalcony(s) ? 1.2 : 0));
+    return new THREE.Vector3(
+      (s.col - cx) * SW,
+      r * RISE + (isBalcony(s) ? 1.6 : 0),
+      4 + r * RD + (isBalcony(s) ? 1.2 : 0),
+    );
   };
-  const hallW = maxCol * SW + 5, hallD = 4 + maxRow * RD + 5;
+  const hallW = maxCol * SW + 5,
+    hallD = 4 + maxRow * RD + 5;
   const byId = new Map(seats.map((s) => [s.id, s]));
 
   let renderer;
@@ -23,7 +36,8 @@ export function createSeatScene(THREE: any, el: HTMLElement, seats: any[], zoneN
   }
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   const canvas = renderer.domElement;
-  canvas.style.cssText = "display:block;width:100%;height:auto;touch-action:none;cursor:grab";
+  canvas.style.cssText =
+    "display:block;width:100%;height:auto;touch-action:none;cursor:grab";
   el.appendChild(canvas);
 
   const scene = new THREE.Scene();
@@ -32,7 +46,10 @@ export function createSeatScene(THREE: any, el: HTMLElement, seats: any[], zoneN
   const camera = new THREE.PerspectiveCamera(68, 1.8, 0.1, 100);
 
   const box = (w, h, d, color, x, y, z) => {
-    const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshStandardMaterial({ color, roughness: 0.9 }));
+    const m = new THREE.Mesh(
+      new THREE.BoxGeometry(w, h, d),
+      new THREE.MeshStandardMaterial({ color, roughness: 0.9 }),
+    );
     m.position.set(x, y, z);
     scene.add(m);
     return m;
@@ -41,7 +58,11 @@ export function createSeatScene(THREE: any, el: HTMLElement, seats: any[], zoneN
   // hall shell, floor, stage
   const shell = new THREE.Mesh(
     new THREE.BoxGeometry(hallW, 9, hallD + 7),
-    new THREE.MeshStandardMaterial({ color: "#1b0f2c", side: THREE.BackSide, roughness: 1 })
+    new THREE.MeshStandardMaterial({
+      color: "#1b0f2c",
+      side: THREE.BackSide,
+      roughness: 1,
+    }),
   );
   shell.position.set(0, 4.5, (hallD - 7) / 2);
   scene.add(shell);
@@ -50,15 +71,25 @@ export function createSeatScene(THREE: any, el: HTMLElement, seats: any[], zoneN
 
   // backdrop with the brand gradient
   const cv = document.createElement("canvas");
-  cv.width = 512; cv.height = 128;
+  cv.width = 512;
+  cv.height = 128;
   const g = cv.getContext("2d");
   const gr = g.createLinearGradient(0, 0, 512, 0);
-  gr.addColorStop(0, "#8f6bff"); gr.addColorStop(0.55, "#c04cb0"); gr.addColorStop(1, "#ff9447");
-  g.fillStyle = gr; g.fillRect(0, 0, 512, 128);
-  g.fillStyle = "#fff"; g.font = "bold 46px sans-serif"; g.textAlign = "center"; g.textBaseline = "middle";
+  gr.addColorStop(0, "#8f6bff");
+  gr.addColorStop(0.55, "#c04cb0");
+  gr.addColorStop(1, "#ff9447");
+  g.fillStyle = gr;
+  g.fillRect(0, 0, 512, 128);
+  g.fillStyle = "#fff";
+  g.font = "bold 46px sans-serif";
+  g.textAlign = "center";
+  g.textBaseline = "middle";
   g.fillText("PAVU tickets", 256, 64);
   const bw = hallW - 4;
-  const backdrop = new THREE.Mesh(new THREE.PlaneGeometry(bw, bw / 4), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(cv) }));
+  const backdrop = new THREE.Mesh(
+    new THREE.PlaneGeometry(bw, bw / 4),
+    new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(cv) }),
+  );
   backdrop.position.set(0, 3.4, -6.2);
   scene.add(backdrop);
 
@@ -75,22 +106,47 @@ export function createSeatScene(THREE: any, el: HTMLElement, seats: any[], zoneN
   // seats (instanced for speed)
   const n = seats.length;
   const mat = new THREE.MeshStandardMaterial({ roughness: 0.8 });
-  const base = new THREE.InstancedMesh(new THREE.BoxGeometry(0.46, 0.45, 0.46), mat, n);
-  const back = new THREE.InstancedMesh(new THREE.BoxGeometry(0.46, 0.55, 0.08), mat, n);
-  const mx = new THREE.Matrix4(), cl = new THREE.Color();
+  const base = new THREE.InstancedMesh(
+    new THREE.BoxGeometry(0.46, 0.45, 0.46),
+    mat,
+    n,
+  );
+  const back = new THREE.InstancedMesh(
+    new THREE.BoxGeometry(0.46, 0.55, 0.08),
+    mat,
+    n,
+  );
+  const mx = new THREE.Matrix4(),
+    cl = new THREE.Color();
   seats.forEach((s, i) => {
     const p = pos(s);
-    mx.makeTranslation(p.x, p.y + 0.25, p.z); base.setMatrixAt(i, mx);
-    mx.makeTranslation(p.x, p.y + 0.6, p.z + 0.22); back.setMatrixAt(i, mx);
-    cl.set(s.taken ? "#555060" : COLORS[Math.max(0, zoneNames.indexOf(s.zone)) % COLORS.length]);
-    base.setColorAt(i, cl); back.setColorAt(i, cl);
+    mx.makeTranslation(p.x, p.y + 0.25, p.z);
+    base.setMatrixAt(i, mx);
+    mx.makeTranslation(p.x, p.y + 0.6, p.z + 0.22);
+    back.setMatrixAt(i, mx);
+    cl.set(
+      s.taken
+        ? "#555060"
+        : COLORS[Math.max(0, zoneNames.indexOf(s.zone)) % COLORS.length],
+    );
+    base.setColorAt(i, cl);
+    back.setColorAt(i, cl);
   });
-  scene.add(base); scene.add(back);
+  scene.add(base);
+  scene.add(back);
 
   // marker shown in the overview
   const marker = new THREE.Group();
-  marker.add(new THREE.Mesh(new THREE.SphereGeometry(0.3, 16, 16), new THREE.MeshBasicMaterial({ color: "#ffe0c2" })));
-  const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 2, 8), new THREE.MeshBasicMaterial({ color: "#ffe0c2" }));
+  marker.add(
+    new THREE.Mesh(
+      new THREE.SphereGeometry(0.3, 16, 16),
+      new THREE.MeshBasicMaterial({ color: "#ffe0c2" }),
+    ),
+  );
+  const stick = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.04, 0.04, 2, 8),
+    new THREE.MeshBasicMaterial({ color: "#ffe0c2" }),
+  );
   stick.position.y = -1;
   marker.add(stick);
   marker.visible = false;
@@ -108,15 +164,25 @@ export function createSeatScene(THREE: any, el: HTMLElement, seats: any[], zoneN
   scene.add(cool);
 
   // look-around by dragging
-  let yaw = 0, pitch = 0, drag = null, lastKey = "";
-  canvas.addEventListener("pointerdown", (e) => { drag = { x: e.clientX, y: e.clientY }; canvas.setPointerCapture(e.pointerId); canvas.style.cursor = "grabbing"; });
+  let yaw = 0,
+    pitch = 0,
+    drag = null,
+    lastKey = "";
+  canvas.addEventListener("pointerdown", (e) => {
+    drag = { x: e.clientX, y: e.clientY };
+    canvas.setPointerCapture(e.pointerId);
+    canvas.style.cursor = "grabbing";
+  });
   canvas.addEventListener("pointermove", (e) => {
     if (!drag) return;
     yaw = Math.max(-1.1, Math.min(1.1, yaw + (e.clientX - drag.x) * 0.006));
     pitch = Math.max(-0.5, Math.min(0.5, pitch + (e.clientY - drag.y) * 0.005));
     drag = { x: e.clientX, y: e.clientY };
   });
-  const end = () => { drag = null; canvas.style.cursor = "grab"; };
+  const end = () => {
+    drag = null;
+    canvas.style.cursor = "grab";
+  };
   canvas.addEventListener("pointerup", end);
   canvas.addEventListener("pointercancel", end);
 
@@ -140,7 +206,11 @@ export function createSeatScene(THREE: any, el: HTMLElement, seats: any[], zoneN
     const s = st.selectedId ? byId.get(st.selectedId) : null;
     const seatMode = st.mode === "seat" && !!s;
     const key = st.mode + ":" + (s ? s.id : "");
-    if (key !== lastKey) { lastKey = key; yaw = 0; pitch = 0; }
+    if (key !== lastKey) {
+      lastKey = key;
+      yaw = 0;
+      pitch = 0;
+    }
 
     let goal, target;
     if (seatMode) {
@@ -156,7 +226,8 @@ export function createSeatScene(THREE: any, el: HTMLElement, seats: any[], zoneN
     tmp.copy(target).sub(eye);
     camera.rotation.order = "YXZ";
     camera.rotation.y = Math.atan2(-tmp.x, -tmp.z) + (seatMode ? yaw : 0);
-    camera.rotation.x = Math.atan2(tmp.y, Math.hypot(tmp.x, tmp.z)) + (seatMode ? pitch : 0);
+    camera.rotation.x =
+      Math.atan2(tmp.y, Math.hypot(tmp.x, tmp.z)) + (seatMode ? pitch : 0);
     camera.rotation.z = 0;
 
     marker.visible = !seatMode && !!s;

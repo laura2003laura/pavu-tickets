@@ -1,4 +1,3 @@
-
 import { NextResponse } from "next/server";
 import { markPaidAndIssue } from "@/lib/orders";
 import { db } from "@/lib/db";
@@ -8,7 +7,7 @@ export async function POST(req: Request) {
   if (!stripe) {
     return NextResponse.json(
       { error: "Stripe is not configured" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -16,7 +15,7 @@ export async function POST(req: Request) {
     console.error("STRIPE_WEBHOOK_SECRET is not set");
     return NextResponse.json(
       { error: "Webhook is not configured" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 
@@ -29,7 +28,7 @@ export async function POST(req: Request) {
     event = stripe.webhooks.constructEvent(
       body,
       sig,
-      process.env.STRIPE_WEBHOOK_SECRET
+      process.env.STRIPE_WEBHOOK_SECRET,
     );
   } catch {
     return NextResponse.json({ error: "Bad signature" }, { status: 400 });
@@ -66,7 +65,7 @@ export async function POST(req: Request) {
           console.error("Payment intent is missing");
           return NextResponse.json(
             { error: "Payment intent is missing" },
-            { status: 500 }
+            { status: 500 },
           );
         }
 
@@ -83,7 +82,7 @@ export async function POST(req: Request) {
             },
             {
               idempotencyKey: `ticket-refund-${event.id}`,
-            }
+            },
           );
 
           await db.order.updateMany({
@@ -100,7 +99,7 @@ export async function POST(req: Request) {
 
           return NextResponse.json(
             { error: "Refund failed; webhook retry required" },
-            { status: 500 }
+            { status: 500 },
           );
         }
       }

@@ -132,9 +132,7 @@ export default async function AdminDeliveriesPage() {
 
               <form action={markDelivered}>
                 <input type="hidden" name="orderId" value={order.id} />
-                <button className="btn">
-                  Նշել որպես առաքված
-                </button>
+                <button className="btn">Նշել որպես առաքված</button>
               </form>
             </section>
           ))}

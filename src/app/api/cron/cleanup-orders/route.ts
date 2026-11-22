@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
   if (!secret) {
     return NextResponse.json(
       { error: "CRON_SECRET is not configured" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 

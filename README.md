@@ -19,7 +19,7 @@ PAVU is an event ticketing platform built with Next.js 14, TypeScript, PostgreSQ
 3. Run `npm install`.
 4. Run `npx prisma generate`.
 5. For a new database, run `npx prisma db push` and `npm run seed`. For an existing database, back it up first and use `npx prisma db push` to apply compatible schema changes. Do not run `prisma migrate reset` on a database with data you need to keep.
-6. Run `npm run dev` and open http://localhost:3000.
+6. Run `npm run dev` and open <http://localhost:3000>.
 
 ## Payments
 

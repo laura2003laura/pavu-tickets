@@ -57,8 +57,8 @@ export default async function AdminGiftInvitationsPage() {
     <main>
       <h1>Նվեր հրավիրատոմսեր</h1>
       <p className="muted">
-        Այստեղ կարող եք տեսնել գնված նվեր հրավիրատոմսերը, ստացողների տվյալները
-        և նրանց պատասխանները։
+        Այստեղ կարող եք տեսնել գնված նվեր հրավիրատոմսերը, ստացողների տվյալները և
+        նրանց պատասխանները։
       </p>
 
       <p>
@@ -136,23 +136,23 @@ export default async function AdminGiftInvitationsPage() {
                 </p>
 
                 {reminderDue && (
-  <>
-    <p style={{ color: "#b45309", fontWeight: 600 }}>
-      Հիշեցում է անհրաժեշտ․ անցել է 48 ժամ։
-    </p>
+                  <>
+                    <p style={{ color: "#b45309", fontWeight: 600 }}>
+                      Հիշեցում է անհրաժեշտ․ անցել է 48 ժամ։
+                    </p>
 
-    <form action={markReminderSent}>
-      <input
-        type="hidden"
-        name="invitationId"
-        value={invitation.id}
-      />
-      <button type="submit" className="btn">
-        Նշել հիշեցումն ուղարկված
-      </button>
-    </form>
-  </>
-)}
+                    <form action={markReminderSent}>
+                      <input
+                        type="hidden"
+                        name="invitationId"
+                        value={invitation.id}
+                      />
+                      <button type="submit" className="btn">
+                        Նշել հիշեցումն ուղարկված
+                      </button>
+                    </form>
+                  </>
+                )}
 
                 {invitation.reminderSentAt && (
                   <p style={{ color: "#26734d" }}>

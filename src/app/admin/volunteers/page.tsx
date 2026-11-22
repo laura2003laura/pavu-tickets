@@ -1,4 +1,3 @@
-
 import { requireAdmin } from "@/lib/admin";
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
@@ -35,15 +34,13 @@ async function changeVolunteerStatus(formData: FormData) {
   revalidatePath("/admin/volunteers");
 }
 
-export default async function AdminVolunteers(
-  props: {
-    searchParams: Promise<{
-      search?: string;
-      status?: string;
-      eventId?: string;
-    }>;
-  }
-) {
+export default async function AdminVolunteers(props: {
+  searchParams: Promise<{
+    search?: string;
+    status?: string;
+    eventId?: string;
+  }>;
+}) {
   const searchParams = await props.searchParams;
   await requireAdmin();
 
@@ -56,38 +53,36 @@ export default async function AdminVolunteers(
   });
   const allowedStatuses = ["PENDING", "APPROVED", "REJECTED", "RESERVE"];
 
-  const selectedStatus = allowedStatuses.includes(status)
-    ? status
-    : "";
+  const selectedStatus = allowedStatuses.includes(status) ? status : "";
   const applications = await db.volunteerApplication.findMany({
- where: {
-  ...(selectedStatus
-    ? {
-        status: selectedStatus as
-          | "PENDING"
-          | "APPROVED"
-          | "REJECTED"
-          | "RESERVE",
-      }
-    : {
-        status: {
-          in: ["PENDING", "APPROVED"],
-        },
-      }),
-  ...(eventId ? { eventId } : {}),
-  ...(search
-    ? {
-        OR: [
-          { firstName: { contains: search, mode: "insensitive" } },
-          { lastName: { contains: search, mode: "insensitive" } },
-          { phone: { contains: search, mode: "insensitive" } },
-        ],
-      }
-    : {}),
-},
-  include: { event: true },
-  orderBy: { createdAt: "desc" },
-});
+    where: {
+      ...(selectedStatus
+        ? {
+            status: selectedStatus as
+              | "PENDING"
+              | "APPROVED"
+              | "REJECTED"
+              | "RESERVE",
+          }
+        : {
+            status: {
+              in: ["PENDING", "APPROVED"],
+            },
+          }),
+      ...(eventId ? { eventId } : {}),
+      ...(search
+        ? {
+            OR: [
+              { firstName: { contains: search, mode: "insensitive" } },
+              { lastName: { contains: search, mode: "insensitive" } },
+              { phone: { contains: search, mode: "insensitive" } },
+            ],
+          }
+        : {}),
+    },
+    include: { event: true },
+    orderBy: { createdAt: "desc" },
+  });
 
   return (
     <main>
@@ -97,9 +92,7 @@ export default async function AdminVolunteers(
 
       <h1>Կամավորների հայտեր</h1>
 
-      <p className="lead">
-        Գտնված հայտերի քանակը՝ {applications.length}
-      </p>
+      <p className="lead">Գտնված հայտերի քանակը՝ {applications.length}</p>
 
       <form
         method="GET"
@@ -127,11 +120,7 @@ export default async function AdminVolunteers(
 
         <label style={{ flex: "1 1 170px" }}>
           Կարգավիճակ
-          <select
-            name="status"
-            defaultValue={status}
-            style={{ width: "100%" }}
-          >
+          <select name="status" defaultValue={status} style={{ width: "100%" }}>
             <option value="">Բոլոր կարգավիճակները</option>
             <option value="PENDING">Նոր հայտ</option>
             <option value="APPROVED">Հաստատված</option>
@@ -186,7 +175,9 @@ export default async function AdminVolunteers(
             <tbody>
               {applications.map((a) => (
                 <tr key={a.id}>
-                  <td>{a.firstName} {a.lastName}</td>
+                  <td>
+                    {a.firstName} {a.lastName}
+                  </td>
                   <td>{a.phone ?? "—"}</td>
                   <td>{a.telegram}</td>
                   <td>{a.birthDate.toLocaleDateString("hy-AM")}</td>

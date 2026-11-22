@@ -9,7 +9,9 @@ export default function VolunteerNotice() {
 
   return (
     <div className="success-note volunteer-notice">
-      <span>✓ Հայտը հաջողությամբ ուղարկվել է։ Շնորհակալություն միանալու համար։</span>
+      <span>
+        ✓ Հայտը հաջողությամբ ուղարկվել է։ Շնորհակալություն միանալու համար։
+      </span>
       <button
         type="button"
         onClick={() => setVisible(false)}

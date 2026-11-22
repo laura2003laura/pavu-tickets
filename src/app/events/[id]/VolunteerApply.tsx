@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -39,7 +38,10 @@ export default function VolunteerApply({
       <div>
         <span className="eyebrow">ՄԻԱՑԻՐ ՄԵՐ ԹԻՄԻՆ</span>
         <h3>Դարձիր միջոցառման կամավոր</h3>
-        <p>Օգնիր ստեղծել անմոռանալի իրադարձություն, ձեռք բեր փորձ և ծանոթություններ։</p>
+        <p>
+          Օգնիր ստեղծել անմոռանալի իրադարձություն, ձեռք բեր փորձ և
+          ծանոթություններ։
+        </p>
       </div>
 
       <button
@@ -79,32 +81,67 @@ export default function VolunteerApply({
 
             <span className="eyebrow">PAVU COMMUNITY</span>
             <h2>Կամավորի հայտ</h2>
-            <p className="muted">Լրացրու տվյալներդ, և մեր թիմը կապ կհաստատի քեզ հետ։</p>
+            <p className="muted">
+              Լրացրու տվյալներդ, և մեր թիմը կապ կհաստատի քեզ հետ։
+            </p>
 
             {error && <p className="err">{error}</p>}
 
             <div className="row2">
-              <label>Անուն
-                <input name="firstName" required maxLength={80} autoComplete="given-name" />
+              <label>
+                Անուն
+                <input
+                  name="firstName"
+                  required
+                  maxLength={80}
+                  autoComplete="given-name"
+                />
               </label>
-              <label>Ազգանուն
-                <input name="lastName" required maxLength={80} autoComplete="family-name" />
+              <label>
+                Ազգանուն
+                <input
+                  name="lastName"
+                  required
+                  maxLength={80}
+                  autoComplete="family-name"
+                />
               </label>
             </div>
 
-            <label>Հեռախոսահամար
-              <input name="phone" required type="tel" placeholder="+374 ..." pattern="\\+?[0-9 ()-]{8,16}" />
+            <label>
+              Հեռախոսահամար
+              <input
+                name="phone"
+                required
+                type="tel"
+                placeholder="+374 ..."
+                pattern="\\+?[0-9 ()-]{8,16}"
+              />
             </label>
 
-            <label>Ծննդյան ամսաթիվ
-              <input name="birthDate" required type="date" max={new Date().toISOString().slice(0, 10)} />
+            <label>
+              Ծննդյան ամսաթիվ
+              <input
+                name="birthDate"
+                required
+                type="date"
+                max={new Date().toISOString().slice(0, 10)}
+              />
             </label>
 
-            <label>Telegram նիկնեյմ
-              <input name="telegram" required placeholder="@username" maxLength={64} />
+            <label>
+              Telegram նիկնեյմ
+              <input
+                name="telegram"
+                required
+                placeholder="@username"
+                maxLength={64}
+              />
             </label>
 
-            <button className="btn" type="submit">Ուղարկել հայտը</button>
+            <button className="btn" type="submit">
+              Ուղարկել հայտը
+            </button>
           </form>
         </div>
       )}
@@ -114,7 +151,9 @@ export default function VolunteerApply({
           <div className="volunteer-modal stack">
             <span className="eyebrow">PAVU COMMUNITY</span>
             <h2>✓ Հայտն ուղարկված է</h2>
-            <p>Շնորհակալություն միանալու համար։ Մեր թիմը կապ կհաստատի քեզ հետ։</p>
+            <p>
+              Շնորհակալություն միանալու համար։ Մեր թիմը կապ կհաստատի քեզ հետ։
+            </p>
             <button
               type="button"
               className="btn"

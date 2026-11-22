@@ -1,4 +1,3 @@
-
 import { requireAdmin } from "@/lib/admin";
 import { db } from "@/lib/db";
 import { notFound, redirect } from "next/navigation";
@@ -14,11 +13,9 @@ const statusLabel: Record<string, string> = {
   RESERVE: "Ռեզերվ",
 };
 
-export default async function EditVolunteerPage(
-  props: {
-    params: Promise<{ id: string }>;
-  }
-) {
+export default async function EditVolunteerPage(props: {
+  params: Promise<{ id: string }>;
+}) {
   const params = await props.params;
   await requireAdmin();
 
@@ -85,7 +82,10 @@ export default async function EditVolunteerPage(
         email: email || null,
         eventId,
         status: status as "PENDING" | "APPROVED" | "REJECTED" | "RESERVE",
-        languages: languages.split(",").map((item) => item.trim()).filter(Boolean),
+        languages: languages
+          .split(",")
+          .map((item) => item.trim())
+          .filter(Boolean),
         experience: experience || null,
         availableDays: availableDays || null,
         comment: comment || null,
@@ -111,7 +111,11 @@ export default async function EditVolunteerPage(
       <form action={updateApplication} className="form">
         <label>
           Անուն *
-          <input name="firstName" defaultValue={application.firstName} required />
+          <input
+            name="firstName"
+            defaultValue={application.firstName}
+            required
+          />
         </label>
 
         <label>
@@ -141,7 +145,11 @@ export default async function EditVolunteerPage(
 
         <label>
           Էլ․ փոստ
-          <input type="email" name="email" defaultValue={application.email ?? ""} />
+          <input
+            type="email"
+            name="email"
+            defaultValue={application.email ?? ""}
+          />
         </label>
 
         <label>
@@ -167,22 +175,37 @@ export default async function EditVolunteerPage(
 
         <label>
           Լեզուներ (ստորակետով բաժանված)
-          <input name="languages" defaultValue={application.languages.join(", ")} />
+          <input
+            name="languages"
+            defaultValue={application.languages.join(", ")}
+          />
         </label>
 
         <label>
           Կամավորական փորձ
-          <textarea name="experience" defaultValue={application.experience ?? ""} rows={3} />
+          <textarea
+            name="experience"
+            defaultValue={application.experience ?? ""}
+            rows={3}
+          />
         </label>
 
         <label>
           Հասանելի օրեր
-          <textarea name="availableDays" defaultValue={application.availableDays ?? ""} rows={3} />
+          <textarea
+            name="availableDays"
+            defaultValue={application.availableDays ?? ""}
+            rows={3}
+          />
         </label>
 
         <label>
           Լրացուցիչ մեկնաբանություն
-          <textarea name="comment" defaultValue={application.comment ?? ""} rows={3} />
+          <textarea
+            name="comment"
+            defaultValue={application.comment ?? ""}
+            rows={3}
+          />
         </label>
 
         <button type="submit" className="btn">

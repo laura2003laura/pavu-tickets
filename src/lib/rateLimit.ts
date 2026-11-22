@@ -7,7 +7,8 @@ export function allow(key: string, max: number, windowMs: number) {
   const h = hits.get(key);
   if (!h || h.reset < now) {
     hits.set(key, { n: 1, reset: now + windowMs });
-    if (hits.size > 5000) for (const [k, v] of hits) if (v.reset < now) hits.delete(k);
+    if (hits.size > 5000)
+      for (const [k, v] of hits) if (v.reset < now) hits.delete(k);
     return true;
   }
   h.n++;

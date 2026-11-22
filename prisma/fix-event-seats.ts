@@ -18,11 +18,11 @@ async function main() {
     where: { hallId },
     select: { id: true },
   });
-console.log("Դահլիճի տեղեր՝", seats.length);
-console.log(
-  "Միջոցառման արդեն կապված տեղեր՝",
-  await db.eventSeat.count({ where: { eventId } })
-);
+  console.log("Դահլիճի տեղեր՝", seats.length);
+  console.log(
+    "Միջոցառման արդեն կապված տեղեր՝",
+    await db.eventSeat.count({ where: { eventId } }),
+  );
   const result = await db.eventSeat.createMany({
     data: seats.map((seat) => ({
       eventId,
@@ -33,12 +33,12 @@ console.log(
 
   console.log("Ավելացված տեղեր՝", result.count);
   const statuses = await db.eventSeat.groupBy({
-  by: ["status"],
-  where: { eventId },
-  _count: { status: true },
-});
+    by: ["status"],
+    where: { eventId },
+    _count: { status: true },
+  });
 
-console.log("Տեղերի կարգավիճակները՝", statuses);
+  console.log("Տեղերի կարգավիճակները՝", statuses);
 }
 
 main()

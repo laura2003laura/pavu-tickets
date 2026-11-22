@@ -11,21 +11,20 @@ import CheckoutClient from "./CheckoutClient";
 
 export const dynamic = "force-dynamic";
 
-
-export default async function Checkout(
-  props: {
-    params: Promise<{ orderId: string }>;
-    searchParams: Promise<{ error?: string }>;
-  }
-) {
+export default async function Checkout(props: {
+  params: Promise<{ orderId: string }>;
+  searchParams: Promise<{ error?: string }>;
+}) {
   const searchParams = await props.searchParams;
   const params = await props.params;
   const id = params.orderId;
   const user = await getUser();
   if (!user) redirect(`/login?next=/checkout/${id}`);
 
-
-  const order = await db.order.findFirst({ where: { id, userId: user.id }, include: { event: true } });
+  const order = await db.order.findFirst({
+    where: { id, userId: user.id },
+    include: { event: true },
+  });
   if (!order) notFound();
   if (order.status === "PAID") redirect("/my-tickets");
 
@@ -33,8 +32,13 @@ export default async function Checkout(
     return (
       <main>
         <h1>Պատվերը հասանելի չէ</h1>
-        <p className="lead">Այս պատվերն այլևս հնարավոր չէ ավարտել։ Կարող ես վերադառնալ միջոցառմանը և նոր պատվեր ստեղծել։</p>
-        <Link className="btn" href={`/events/${order.eventId}`}>Վերադառնալ միջոցառմանը</Link>
+        <p className="lead">
+          Այս պատվերն այլևս հնարավոր չէ ավարտել։ Կարող ես վերադառնալ միջոցառմանը
+          և նոր պատվեր ստեղծել։
+        </p>
+        <Link className="btn" href={`/events/${order.eventId}`}>
+          Վերադառնալ միջոցառմանը
+        </Link>
       </main>
     );
   }
@@ -43,18 +47,24 @@ export default async function Checkout(
   async function payOnline(formData: FormData) {
     "use server";
     const u = await getUser();
-if (!u) redirect(`/login?next=/checkout/${id}`);
+    if (!u) redirect(`/login?next=/checkout/${id}`);
 
-const o = await db.order.findFirst({
-  where: { id, userId: u.id, status: "PENDING" },
-});
+    const o = await db.order.findFirst({
+      where: { id, userId: u.id, status: "PENDING" },
+    });
 
-if (!o) redirect(`/checkout/${id}`);
+    if (!o) redirect(`/checkout/${id}`);
 
-const isGift = formData.get("isGift") === "on";
-    const giftRecipientName = String(formData.get("giftRecipientName") ?? "").trim();
-    const giftRecipientPhone = String(formData.get("giftRecipientPhone") ?? "").trim();
-    const giftAnonymous = isGift ? formData.get("giftAnonymous") === "on" : true;
+    const isGift = formData.get("isGift") === "on";
+    const giftRecipientName = String(
+      formData.get("giftRecipientName") ?? "",
+    ).trim();
+    const giftRecipientPhone = String(
+      formData.get("giftRecipientPhone") ?? "",
+    ).trim();
+    const giftAnonymous = isGift
+      ? formData.get("giftAnonymous") === "on"
+      : true;
 
     if (isGift && !/^\+?[0-9 ()-]{8,20}$/.test(giftRecipientPhone)) {
       redirect(`/checkout/${id}?error=gift`);
@@ -82,19 +92,36 @@ const isGift = formData.get("isGift") === "on";
       }
       if (existing) redirect(existing);
 
-      
-      await db.order.update({ where: { id }, data: { deliveryMethod: "ONLINE" } });
-      const url = await checkoutUrl(id, u.email, await orderLines(id), `/checkout/${id}`);
+      await db.order.update({
+        where: { id },
+        data: { deliveryMethod: "ONLINE" },
+      });
+      const url = await checkoutUrl(
+        id,
+        u.email,
+        await orderLines(id),
+        `/checkout/${id}`,
+      );
       if (!url) redirect(`/checkout/${id}?error=payment`);
       redirect(url);
     }
 
     // Demo mode: the card is only checked, never stored or logged.
     const f = (k: string) => String(formData.get(k) ?? "");
-    if (!validCard({ number: f("cardNumber"), expiry: f("cardExpiry"), cvc: f("cardCvc"), holder: f("cardHolder") })) {
+    if (
+      !validCard({
+        number: f("cardNumber"),
+        expiry: f("cardExpiry"),
+        cvc: f("cardCvc"),
+        holder: f("cardHolder"),
+      })
+    ) {
       redirect(`/checkout/${id}?error=card`);
     }
-    await db.order.update({ where: { id }, data: { deliveryMethod: "ONLINE" } });
+    await db.order.update({
+      where: { id },
+      data: { deliveryMethod: "ONLINE" },
+    });
     await markPaidAndIssue(id);
     redirect("/my-tickets?paid=1");
   }
@@ -103,25 +130,28 @@ const isGift = formData.get("isGift") === "on";
 
   async function orderDelivery(formData: FormData) {
     "use server";
-   const u = await getUser();
-if (!u) redirect(`/login?next=/checkout/${id}`);
+    const u = await getUser();
+    if (!u) redirect(`/login?next=/checkout/${id}`);
 
-const o = await db.order.findFirst({
-  where: { id, userId: u.id, status: "PENDING" },
-});
+    const o = await db.order.findFirst({
+      where: { id, userId: u.id, status: "PENDING" },
+    });
 
-if (!o) redirect(`/checkout/${id}`);
+    if (!o) redirect(`/checkout/${id}`);
 
-const f = (k: string) => String(formData.get(k) ?? "").trim();
+    const f = (k: string) => String(formData.get(k) ?? "").trim();
     const phone = f("phone");
     const address = f("address").slice(0, 200);
     const lat = Number(f("lat"));
     const lng = Number(f("lng"));
 
-    if (!/^\+?[0-9 ()-]{8,16}$/.test(phone) || !address || !inYerevan(lat, lng)) {
+    if (
+      !/^\+?[0-9 ()-]{8,16}$/.test(phone) ||
+      !address ||
+      !inYerevan(lat, lng)
+    ) {
       redirect(`/checkout/${id}?error=delivery`);
     }
-
 
     await db.order.update({
       where: { id },
@@ -143,12 +173,16 @@ const f = (k: string) => String(formData.get(k) ?? "").trim();
     <main>
       <h1>Պատվերի ավարտ</h1>
       <p className="lead">
-        {order.event.title} В· {day(order.event.startsAt)}, {time(order.event.startsAt)}
+        {order.event.title} В· {day(order.event.startsAt)},{" "}
+        {time(order.event.startsAt)}
       </p>
       <CheckoutClient
-        lines={lines.map((l) => ({ name: l.name, qty: l.qty, price: money(l.priceCents * l.qty, l.currency) }))}
+        lines={lines.map((l) => ({
+          name: l.name,
+          qty: l.qty,
+          price: money(l.priceCents * l.qty, l.currency),
+        }))}
         total={money(order.totalCents, order.currency)}
-        
         stripeEnabled={!!stripe}
         error={searchParams.error ?? null}
         payOnline={payOnline}

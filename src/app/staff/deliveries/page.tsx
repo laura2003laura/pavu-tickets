@@ -1,4 +1,3 @@
-
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireStaffOrAdmin } from "@/lib/admin";
@@ -73,12 +72,12 @@ export default async function DeliveriesPage() {
                 {money(order.totalCents, order.currency)}
               </p>
               <p>
-                <strong>Միջոցառման ամսաթիվ՝</strong>{" "}
-                {day(order.event.startsAt)}, {time(order.event.startsAt)}
+                <strong>Միջոցառման ամսաթիվ՝</strong> {day(order.event.startsAt)}
+                , {time(order.event.startsAt)}
               </p>
               <p>
-                <strong>Պատվերի ամսաթիվ՝</strong>{" "}
-                {day(order.createdAt)}, {time(order.createdAt)}
+                <strong>Պատվերի ամսաթիվ՝</strong> {day(order.createdAt)},{" "}
+                {time(order.createdAt)}
               </p>
 
               <p className="badge PENDING">
@@ -86,14 +85,8 @@ export default async function DeliveriesPage() {
               </p>
 
               <form action={confirmDelivery}>
-                <input
-                  type="hidden"
-                  name="orderId"
-                  value={order.id}
-                />
-                <button type="submit">
-                  Հաստատել առաքումն ու վճարումը
-                </button>
+                <input type="hidden" name="orderId" value={order.id} />
+                <button type="submit">Հաստատել առաքումն ու վճարումը</button>
               </form>
             </section>
           ))}
